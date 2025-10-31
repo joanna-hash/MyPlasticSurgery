@@ -1,0 +1,96 @@
+/* 기본 구조 */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  color: #333;
+  display: flex;
+}
+
+/* 사이드바 */
+.sidebar {
+  width: 220px;
+  background-color: #f7f9fc;
+  border-right: 1px solid #ddd;
+  height: 100vh;
+  position: fixed;
+  padding: 1em;
+}
+
+.sidebar h2 {
+  text-align: center;
+  color: #2b4c7e;
+  margin-bottom: 1em;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar a {
+  display: block;
+  padding: 0.6em 0.8em;
+  text-decoration: none;
+  color: #2b4c7e;
+  border-radius: 4px;
+}
+
+.sidebar a:hover,
+.sidebar a.active {
+  background-color: #e0e9f8;
+  font-weight: bold;
+}
+
+/* 하위 메뉴 */
+.submenu-items {
+  margin-left: 1em;
+  margin-top: 0.3em;
+}
+
+.submenu-items a {
+  font-size: 0.9em;
+}
+
+/* 메인 콘텐츠 */
+.content {
+  margin-left: 240px;
+  padding: 1.5em;
+  width: calc(100% - 240px);
+  background-color: #fff;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 1em;
+}
+
+header h1 {
+  color: #2b4c7e;
+}
+
+.category-section {
+  margin-bottom: 2em;
+}
+
+.category-section h2 {
+  border-bottom: 2px solid #e0e9f8;
+  padding-bottom: 0.3em;
+}
+
+.category-section article {
+  max-width: 600px;
+  margin-top: 1em;
+}
+
+.category-section img {
+  width: 100%;
+  border-radius: 6px;
+  margin-bottom: 0.5em;
+}
+
+footer {
+  text-align: center;
+  margin-top: 2em;
+  color: #777;
+  font-size: 0.9em;
+}
