@@ -1,41 +1,67 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>네이버 지도 검색 + 자동완성</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plastic Surgery Map View</title>
 
-  <!-- Naver Maps API (Geocoder + Places API 포함) -->
-  <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=YOUR_CLIENT_ID&submodules=geocoder,places&language=ko"></script>
+  <!-- ✅ 네이버 지도 API (영문 + geocoder/places 모듈 포함) -->
+  <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=YOUR_CLIENT_ID&submodules=geocoder,places&language=en"></script>
 
   <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
+    body {
       font-family: 'Pretendard', sans-serif;
+      margin: 0;
+      background: #f5f5f5;
     }
-    #map {
+    header {
+      background-color: #03c75a;
+      color: white;
+      padding: 1rem 2rem;
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: bold;
+    }
+    .map-container {
       width: 100%;
-      height: 75vh;
+      height: 60vh;
+      position: relative;
+      border-bottom: 3px solid #03c75a;
     }
+
+    /* 구글 지도 iframe */
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* 네이버 지도 영역 */
+    #naver-map {
+      width: 100%;
+      height: 70vh;
+      position: relative;
+    }
+
+    /* 검색창 스타일 */
     #search-box {
       position: absolute;
-      top: 10px;
+      top: 15px;
       left: 50%;
       transform: translateX(-50%);
+      z-index: 1000;
       background: white;
-      padding: 10px 15px;
+      padding: 8px 12px;
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       display: flex;
-      align-items: center;
       gap: 8px;
-      z-index: 999;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
+
     #search-input {
-      width: 280px;
-      padding: 8px;
+      width: 260px;
+      padding: 6px 10px;
       border: 1px solid #ccc;
       border-radius: 4px;
     }
@@ -43,28 +69,27 @@
       background-color: #03c75a;
       color: white;
       border: none;
-      padding: 8px 12px;
+      padding: 6px 12px;
       border-radius: 4px;
       cursor: pointer;
     }
-    #search-button:hover {
-      background-color: #02b150;
-    }
 
+    /* 검색 결과 리스트 */
     #results {
       position: absolute;
       top: 60px;
       left: 50%;
       transform: translateX(-50%);
-      width: 330px;
+      background: white;
+      width: 320px;
       max-height: 250px;
       overflow-y: auto;
-      background: #fff;
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-      z-index: 998;
+      z-index: 999;
       display: none;
     }
+
     .result-item {
       padding: 10px;
       border-bottom: 1px solid #eee;
@@ -78,26 +103,34 @@
     }
     .result-address {
       font-size: 13px;
-      color: #555;
+      color: #666;
     }
   </style>
 </head>
 
 <body>
-  <!-- 지도 검색창 -->
-  <div id="search-box">
-    <input type="text" id="search-input" placeholder="검색할 장소를 입력하세요 (예: 카페, 서울시청 등)" />
-    <button id="search-button">검색</button>
+  <header>Best Plastic Surgery Clinics in Korea</header>
+
+  <!-- ✅ 구글 지도 (그대로 유지) -->
+  <div class="map-container">
+    <iframe src="https://storage.googleapis.com/maps-solutions-cccswt1fsz/neighborhood-discovery/ap9e/neighborhood-discovery.html"
+      loading="lazy"
+      allowfullscreen>
+    </iframe>
   </div>
 
-  <!-- 검색 결과 리스트 -->
+  <!-- ✅ 네이버 지도 + 검색 기능 -->
+  <div id="naver-map"></div>
+
+  <!-- 검색 UI -->
+  <div id="search-box">
+    <input type="text" id="search-input" placeholder="Search locations (e.g., Gangnam, Apgujeong, etc.)" />
+    <button id="search-button">Search</button>
+  </div>
   <div id="results"></div>
 
-  <!-- 지도 -->
-  <div id="map"></div>
-
   <script>
-    var map = new naver.maps.Map("map", {
+    var map = new naver.maps.Map("naver-map", {
       center: new naver.maps.LatLng(37.5665, 126.9780),
       zoom: 11
     });
@@ -105,10 +138,10 @@
     var markers = [];
     var infowindows = [];
 
-    // 지도 위 마커/정보창 모두 제거
+    // 지도 위 마커/정보창 초기화
     function clearMap() {
-      markers.forEach(function(m) { m.setMap(null); });
-      infowindows.forEach(function(iw) { iw.close(); });
+      markers.forEach(m => m.setMap(null));
+      infowindows.forEach(iw => iw.close());
       markers = [];
       infowindows = [];
     }
@@ -116,9 +149,9 @@
     // 장소 검색
     function searchPlaces(keyword) {
       var ps = new naver.maps.Service();
-      ps.search(keyword, function(status, response) {
+      ps.geocode({ query: keyword }, function(status, response) {
         if (status !== naver.maps.Service.Status.OK) {
-          alert("검색 결과가 없습니다.");
+          alert("No search results found.");
           return;
         }
 
@@ -127,7 +160,7 @@
       });
     }
 
-    // 검색 결과 리스트 출력
+    // 결과 리스트 표시
     function displayResults(results) {
       var resultsDiv = document.getElementById("results");
       resultsDiv.innerHTML = "";
@@ -135,7 +168,7 @@
 
       if (results.length === 0) {
         resultsDiv.style.display = "none";
-        alert("검색 결과가 없습니다.");
+        alert("No results found.");
         return;
       }
 
@@ -145,7 +178,7 @@
         item.className = "result-item";
         item.innerHTML = `
           <div class="result-title">${place.roadAddress || place.jibunAddress}</div>
-          <div class="result-address">(${place.y}, ${place.x})</div>
+          <div class="result-address">Lat: ${place.y}, Lng: ${place.x}</div>
         `;
         item.addEventListener("click", function() {
           focusPlace(place);
@@ -154,7 +187,7 @@
       });
     }
 
-    // 특정 장소에 포커스 (지도 이동 + 마커 + 정보창)
+    // 특정 장소 포커스
     function focusPlace(place) {
       var lat = parseFloat(place.y);
       var lng = parseFloat(place.x);
@@ -174,7 +207,7 @@
       var infoContent = `
         <div style="padding:10px;max-width:200px;">
           <h4 style="margin:0 0 5px;">${place.roadAddress || place.jibunAddress}</h4>
-          <p>위도: ${lat.toFixed(6)}<br>경도: ${lng.toFixed(6)}</p>
+          <p>Latitude: ${lat.toFixed(6)}<br>Longitude: ${lng.toFixed(6)}</p>
         </div>
       `;
 
@@ -192,7 +225,7 @@
       document.getElementById("results").style.display = "none";
     }
 
-    // 자동완성 기능
+    // 자동완성 (입력 시 실시간)
     var autocompleteTimer;
     document.getElementById("search-input").addEventListener("input", function() {
       clearTimeout(autocompleteTimer);
@@ -205,18 +238,17 @@
       autocompleteTimer = setTimeout(function() {
         naver.maps.Service.geocode({ query: query }, function(status, response) {
           if (status !== naver.maps.Service.Status.OK) return;
-
-          var results = response.v2.addresses.slice(0, 5); // 상위 5개만 자동완성 표시
+          var results = response.v2.addresses.slice(0, 5);
           displayResults(results);
         });
       }, 300);
     });
 
-    // 검색 버튼 클릭
+    // 검색 버튼
     document.getElementById("search-button").addEventListener("click", function() {
       var query = document.getElementById("search-input").value.trim();
       if (!query) {
-        alert("검색어를 입력해주세요.");
+        alert("Please enter a location to search.");
         return;
       }
       searchPlaces(query);
