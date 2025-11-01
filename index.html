@@ -1,258 +1,235 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Plastic Surgery Map View</title>
-
-  <!-- ✅ 네이버 지도 API (영문 + geocoder/places 모듈 포함) -->
-  <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=YOUR_CLIENT_ID&submodules=geocoder,places&language=en"></script>
-
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Korea Plastic Surgery Reviews</title>
+  <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=jw4st4alcn"></script>
   <style>
     body {
-      font-family: 'Pretendard', sans-serif;
       margin: 0;
-      background: #f5f5f5;
-    }
-    header {
-      background-color: #03c75a;
-      color: white;
-      padding: 1rem 2rem;
-      text-align: center;
-      font-size: 1.4rem;
-      font-weight: bold;
-    }
-    .map-container {
-      width: 100%;
-      height: 60vh;
-      position: relative;
-      border-bottom: 3px solid #03c75a;
-    }
-
-    /* 구글 지도 iframe */
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-
-    /* 네이버 지도 영역 */
-    #naver-map {
-      width: 100%;
-      height: 70vh;
-      position: relative;
-    }
-
-    /* 검색창 스타일 */
-    #search-box {
-      position: absolute;
-      top: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1000;
-      background: white;
-      padding: 8px 12px;
-      border-radius: 8px;
+      font-family: 'Arial', sans-serif;
       display: flex;
-      gap: 8px;
-      align-items: center;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      height: 100vh;
     }
 
-    #search-input {
-      width: 260px;
-      padding: 6px 10px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    #search-button {
-      background-color: #03c75a;
+    /* Sidebar */
+    .sidebar {
+      width: 230px;
+      background-color: #222;
       color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 4px;
-      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
     }
-
-    /* 검색 결과 리스트 */
-    #results {
-      position: absolute;
-      top: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: white;
-      width: 320px;
-      max-height: 250px;
-      overflow-y: auto;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-      z-index: 999;
+    .sidebar h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 18px;
+      border-bottom: 1px solid #555;
+      padding-bottom: 10px;
+    }
+    .menu-item {
+      margin: 10px 0;
+      cursor: pointer;
+      font-size: 15px;
+    }
+    .submenu {
+      margin-left: 15px;
+      margin-top: 5px;
       display: none;
     }
-
-    .result-item {
-      padding: 10px;
-      border-bottom: 1px solid #eee;
+    .submenu div {
+      font-size: 14px;
+      margin: 5px 0;
       cursor: pointer;
+      color: #ccc;
     }
-    .result-item:hover {
-      background-color: #f8f8f8;
+    .submenu div:hover, .menu-item:hover {
+      color: #ffd369;
     }
-    .result-title {
-      font-weight: 600;
+
+    /* Content area */
+    .content {
+      flex-grow: 1;
+      padding: 30px;
+      background-color: #f5f5f5;
+      overflow-y: auto;
     }
-    .result-address {
-      font-size: 13px;
-      color: #666;
+
+    h1 {
+      font-size: 22px;
+      color: #222;
+    }
+
+    .map-container {
+      width: 100%;
+      height: 600px;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 20px;
+    }
+
+    iframe {
+      border: 0;
     }
   </style>
 </head>
-
 <body>
-  <header>Best Plastic Surgery Clinics in Korea</header>
-
-  <!-- ✅ 구글 지도 (그대로 유지) -->
-  <div class="map-container">
-    <iframe src="https://storage.googleapis.com/maps-solutions-cccswt1fsz/neighborhood-discovery/ap9e/neighborhood-discovery.html"
-      loading="lazy"
-      allowfullscreen>
-    </iframe>
+  <div class="sidebar">
+    <h2>Korea Plastic Surgery</h2>
+    <div class="menu-item" onclick="showPage('map')">🗺️ View by Map</div>
+    <div class="menu-item" onclick="toggleSubmenu()">📂 View by Category</div>
+    <div class="submenu" id="submenu">
+      <div onclick="showDetail('rhinoplasty')">Rhinoplasty</div>
+      <div onclick="showDetail('eyelid')">Double Eyelid</div>
+      <div onclick="showDetail('botox')">Botox</div>
+      <div onclick="showDetail('filler')">Filler</div>
+      <div onclick="showDetail('liposuction')">Liposuction</div>
+    </div>
   </div>
 
-  <!-- ✅ 네이버 지도 + 검색 기능 -->
-  <div id="naver-map"></div>
+  <div class="content" id="content">
+    <h1>🗺️ Explore Clinics by Map</h1>
 
-  <!-- 검색 UI -->
-  <div id="search-box">
-    <input type="text" id="search-input" placeholder="Search locations (e.g., Gangnam, Apgujeong, etc.)" />
-    <button id="search-button">Search</button>
+    <!-- ✅ Naver Map -->
+    <div id="naverMap" style="width:100%;height:400px;border-radius:8px;overflow:hidden;"></div>
+
+    <!-- ✅ Google Map -->
+    <div class="map-container">
+      <iframe 
+        src="https://storage.googleapis.com/maps-solutions-cccswt1fsz/neighborhood-discovery/ap9e/neighborhood-discovery.html"
+        width="100%" height="100%"
+        loading="lazy">
+      </iframe>
+    </div>
   </div>
-  <div id="results"></div>
 
   <script>
-    var map = new naver.maps.Map("naver-map", {
-      center: new naver.maps.LatLng(37.5665, 126.9780),
-      zoom: 11
-    });
+    const submenu = document.getElementById('submenu');
+    const content = document.getElementById('content');
 
-    var markers = [];
-    var infowindows = [];
-
-    // 지도 위 마커/정보창 초기화
-    function clearMap() {
-      markers.forEach(m => m.setMap(null));
-      infowindows.forEach(iw => iw.close());
-      markers = [];
-      infowindows = [];
+    // 기본 네이버지도 로드
+    function loadNaverMap() {
+      var mapOptions = {
+        center: new naver.maps.LatLng(37.5665, 126.9780), // 서울 중심
+        zoom: 10
+      };
+      new naver.maps.Map('naverMap', mapOptions);
     }
 
-    // 장소 검색
-    function searchPlaces(keyword) {
-      var ps = new naver.maps.Service();
-      ps.geocode({ query: keyword }, function(status, response) {
-        if (status !== naver.maps.Service.Status.OK) {
-          alert("No search results found.");
-          return;
-        }
-
-        var places = response.v2.addresses;
-        displayResults(places);
-      });
+    // 메뉴 제어
+    function toggleSubmenu() {
+      submenu.style.display = submenu.style.display === 'block' ? 'none' : 'block';
+      if (submenu.style.display === 'block') showCategory();
     }
 
-    // 결과 리스트 표시
-    function displayResults(results) {
-      var resultsDiv = document.getElementById("results");
-      resultsDiv.innerHTML = "";
-      clearMap();
+    function showPage(page) {
+      if (page === 'map') {
+        content.innerHTML = `
+          <h1>🗺️ Explore Clinics by Map</h1>
 
-      if (results.length === 0) {
-        resultsDiv.style.display = "none";
-        alert("No results found.");
-        return;
-      }
+          <div id="naverMap" style="width:100%;height:400px;border-radius:8px;overflow:hidden;"></div>
 
-      resultsDiv.style.display = "block";
-      results.forEach(function(place, index) {
-        var item = document.createElement("div");
-        item.className = "result-item";
-        item.innerHTML = `
-          <div class="result-title">${place.roadAddress || place.jibunAddress}</div>
-          <div class="result-address">Lat: ${place.y}, Lng: ${place.x}</div>
+          <div class="map-container">
+            <iframe 
+              src="https://storage.googleapis.com/maps-solutions-cccswt1fsz/neighborhood-discovery/ap9e/neighborhood-discovery.html"
+              width="100%" height="100%"
+              loading="lazy">
+            </iframe>
+          </div>
         `;
-        item.addEventListener("click", function() {
-          focusPlace(place);
-        });
-        resultsDiv.appendChild(item);
-      });
+        loadNaverMap(); // 페이지 변경 시 지도 다시 로드
+      }
     }
 
-    // 특정 장소 포커스
-    function focusPlace(place) {
-      var lat = parseFloat(place.y);
-      var lng = parseFloat(place.x);
-      var location = new naver.maps.LatLng(lat, lng);
-
-      map.setCenter(location);
-      map.setZoom(15);
-
-      clearMap();
-
-      var marker = new naver.maps.Marker({
-        position: location,
-        map: map
-      });
-      markers.push(marker);
-
-      var infoContent = `
-        <div style="padding:10px;max-width:200px;">
-          <h4 style="margin:0 0 5px;">${place.roadAddress || place.jibunAddress}</h4>
-          <p>Latitude: ${lat.toFixed(6)}<br>Longitude: ${lng.toFixed(6)}</p>
+    function showCategory() {
+      content.innerHTML = `
+        <h1>💉 View by Category</h1>
+        <div class="category-grid">
+          <div class="card" onclick="showDetail('rhinoplasty')">
+            <img src="https://via.placeholder.com/300x120?text=Rhinoplasty" />
+            <h3>Rhinoplasty</h3>
+            <p>Enhance your nose shape naturally with Korean expertise.</p>
+          </div>
+          <div class="card" onclick="showDetail('eyelid')">
+            <img src="https://via.placeholder.com/300x120?text=Eyelid" />
+            <h3>Double Eyelid Surgery</h3>
+            <p>Popular Korean eye surgery for brighter, defined eyes.</p>
+          </div>
+          <div class="card" onclick="showDetail('botox')">
+            <img src="https://via.placeholder.com/300x120?text=Botox" />
+            <h3>Botox</h3>
+            <p>Wrinkle reduction and facial contouring treatment.</p>
+          </div>
+          <div class="card" onclick="showDetail('filler')">
+            <img src="https://via.placeholder.com/300x120?text=Filler" />
+            <h3>Filler</h3>
+            <p>Volume enhancement for face and lips using premium fillers.</p>
+          </div>
+          <div class="card" onclick="showDetail('liposuction')">
+            <img src="https://via.placeholder.com/300x120?text=Liposuction" />
+            <h3>Liposuction</h3>
+            <p>Body contouring and fat removal procedure by top clinics.</p>
+          </div>
         </div>
       `;
-
-      var infowindow = new naver.maps.InfoWindow({
-        content: infoContent,
-        backgroundColor: "#fff",
-        borderColor: "#03c75a",
-        borderWidth: 3,
-        anchorSize: new naver.maps.Size(20, 20)
-      });
-
-      infowindow.open(map, marker);
-      infowindows.push(infowindow);
-
-      document.getElementById("results").style.display = "none";
     }
 
-    // 자동완성 (입력 시 실시간)
-    var autocompleteTimer;
-    document.getElementById("search-input").addEventListener("input", function() {
-      clearTimeout(autocompleteTimer);
-      var query = this.value.trim();
-      if (!query) {
-        document.getElementById("results").style.display = "none";
-        return;
-      }
+    function showDetail(type) {
+      const details = {
+        rhinoplasty: {
+          title: 'Rhinoplasty (Nose Surgery)',
+          desc: 'Korean rhinoplasty focuses on a balanced, natural look using advanced surgical techniques.',
+        },
+        eyelid: {
+          title: 'Double Eyelid Surgery',
+          desc: 'This surgery enhances the crease of the eyelid for a more open, youthful appearance.',
+        },
+        botox: {
+          title: 'Botox Treatment',
+          desc: 'Non-surgical procedure to smooth wrinkles and contour the face.',
+        },
+        filler: {
+          title: 'Filler Injection',
+          desc: 'Add natural volume and symmetry to your face with safe filler procedures.',
+        },
+        liposuction: {
+          title: 'Liposuction',
+          desc: 'Remove excess fat and reshape body contours effectively.',
+        },
+      };
 
-      autocompleteTimer = setTimeout(function() {
-        naver.maps.Service.geocode({ query: query }, function(status, response) {
-          if (status !== naver.maps.Service.Status.OK) return;
-          var results = response.v2.addresses.slice(0, 5);
-          displayResults(results);
-        });
-      }, 300);
-    });
+      const d = details[type];
+      content.innerHTML = `
+        <h1>${d.title}</h1>
+        <p>${d.desc}</p>
 
-    // 검색 버튼
-    document.getElementById("search-button").addEventListener("click", function() {
-      var query = document.getElementById("search-input").value.trim();
-      if (!query) {
-        alert("Please enter a location to search.");
-        return;
-      }
-      searchPlaces(query);
-    });
+        <div class="review">
+          <h3>⭐ Real Local Review</h3>
+          <p>"The clinic was professional and affordable. The staff spoke English and explained every step clearly."</p>
+        </div>
+        <div class="review">
+          <h3>⭐ Real Local Review</h3>
+          <p>"I found this clinic from Naver reviews, and it truly lives up to the local recommendations!"</p>
+        </div>
+
+        <div id="naverMap" style="width:100%;height:400px;border-radius:8px;overflow:hidden;margin-top:20px;"></div>
+
+        <div class="map-container">
+          <iframe 
+            src="https://storage.googleapis.com/maps-solutions-cccswt1fsz/neighborhood-discovery/ap9e/neighborhood-discovery.html"
+            width="100%" height="100%"
+            loading="lazy">
+          </iframe>
+        </div>
+      `;
+      loadNaverMap(); // 상세 페이지에도 네이버지도 표시
+    }
+
+    // 초기 네이버지도 로드
+    loadNaverMap();
   </script>
 </body>
 </html>
