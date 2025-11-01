@@ -1,235 +1,226 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Korea Plastic Surgery Reviews</title>
-  <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=jw4st4alcn"></script>
+  <title>네이버 지도 검색 + 자동완성</title>
+
+  <!-- Naver Maps API (Geocoder + Places API 포함) -->
+  <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=YOUR_CLIENT_ID&submodules=geocoder,places&language=ko"></script>
+
   <style>
-    body {
+    body, html {
       margin: 0;
-      font-family: 'Arial', sans-serif;
+      padding: 0;
+      height: 100%;
+      font-family: 'Pretendard', sans-serif;
+    }
+    #map {
+      width: 100%;
+      height: 75vh;
+    }
+    #search-box {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       display: flex;
-      height: 100vh;
+      align-items: center;
+      gap: 8px;
+      z-index: 999;
+    }
+    #search-input {
+      width: 280px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    #search-button {
+      background-color: #03c75a;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #search-button:hover {
+      background-color: #02b150;
     }
 
-    /* Sidebar */
-    .sidebar {
-      width: 230px;
-      background-color: #222;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      padding: 20px;
-    }
-    .sidebar h2 {
-      text-align: center;
-      margin-bottom: 30px;
-      font-size: 18px;
-      border-bottom: 1px solid #555;
-      padding-bottom: 10px;
-    }
-    .menu-item {
-      margin: 10px 0;
-      cursor: pointer;
-      font-size: 15px;
-    }
-    .submenu {
-      margin-left: 15px;
-      margin-top: 5px;
+    #results {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 330px;
+      max-height: 250px;
+      overflow-y: auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      z-index: 998;
       display: none;
     }
-    .submenu div {
-      font-size: 14px;
-      margin: 5px 0;
+    .result-item {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
       cursor: pointer;
-      color: #ccc;
     }
-    .submenu div:hover, .menu-item:hover {
-      color: #ffd369;
+    .result-item:hover {
+      background-color: #f8f8f8;
     }
-
-    /* Content area */
-    .content {
-      flex-grow: 1;
-      padding: 30px;
-      background-color: #f5f5f5;
-      overflow-y: auto;
+    .result-title {
+      font-weight: 600;
     }
-
-    h1 {
-      font-size: 22px;
-      color: #222;
-    }
-
-    .map-container {
-      width: 100%;
-      height: 600px;
-      border-radius: 8px;
-      overflow: hidden;
-      margin-top: 20px;
-    }
-
-    iframe {
-      border: 0;
+    .result-address {
+      font-size: 13px;
+      color: #555;
     }
   </style>
 </head>
+
 <body>
-  <div class="sidebar">
-    <h2>Korea Plastic Surgery</h2>
-    <div class="menu-item" onclick="showPage('map')">🗺️ View by Map</div>
-    <div class="menu-item" onclick="toggleSubmenu()">📂 View by Category</div>
-    <div class="submenu" id="submenu">
-      <div onclick="showDetail('rhinoplasty')">Rhinoplasty</div>
-      <div onclick="showDetail('eyelid')">Double Eyelid</div>
-      <div onclick="showDetail('botox')">Botox</div>
-      <div onclick="showDetail('filler')">Filler</div>
-      <div onclick="showDetail('liposuction')">Liposuction</div>
-    </div>
+  <!-- 지도 검색창 -->
+  <div id="search-box">
+    <input type="text" id="search-input" placeholder="검색할 장소를 입력하세요 (예: 카페, 서울시청 등)" />
+    <button id="search-button">검색</button>
   </div>
 
-  <div class="content" id="content">
-    <h1>🗺️ Explore Clinics by Map</h1>
+  <!-- 검색 결과 리스트 -->
+  <div id="results"></div>
 
-    <!-- ✅ Naver Map -->
-    <div id="naverMap" style="width:100%;height:400px;border-radius:8px;overflow:hidden;"></div>
-
-    <!-- ✅ Google Map -->
-    <div class="map-container">
-      <iframe 
-        src="https://storage.googleapis.com/maps-solutions-cccswt1fsz/neighborhood-discovery/ap9e/neighborhood-discovery.html"
-        width="100%" height="100%"
-        loading="lazy">
-      </iframe>
-    </div>
-  </div>
+  <!-- 지도 -->
+  <div id="map"></div>
 
   <script>
-    const submenu = document.getElementById('submenu');
-    const content = document.getElementById('content');
+    var map = new naver.maps.Map("map", {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11
+    });
 
-    // 기본 네이버지도 로드
-    function loadNaverMap() {
-      var mapOptions = {
-        center: new naver.maps.LatLng(37.5665, 126.9780), // 서울 중심
-        zoom: 10
-      };
-      new naver.maps.Map('naverMap', mapOptions);
+    var markers = [];
+    var infowindows = [];
+
+    // 지도 위 마커/정보창 모두 제거
+    function clearMap() {
+      markers.forEach(function(m) { m.setMap(null); });
+      infowindows.forEach(function(iw) { iw.close(); });
+      markers = [];
+      infowindows = [];
     }
 
-    // 메뉴 제어
-    function toggleSubmenu() {
-      submenu.style.display = submenu.style.display === 'block' ? 'none' : 'block';
-      if (submenu.style.display === 'block') showCategory();
+    // 장소 검색
+    function searchPlaces(keyword) {
+      var ps = new naver.maps.Service();
+      ps.search(keyword, function(status, response) {
+        if (status !== naver.maps.Service.Status.OK) {
+          alert("검색 결과가 없습니다.");
+          return;
+        }
+
+        var places = response.v2.addresses;
+        displayResults(places);
+      });
     }
 
-    function showPage(page) {
-      if (page === 'map') {
-        content.innerHTML = `
-          <h1>🗺️ Explore Clinics by Map</h1>
+    // 검색 결과 리스트 출력
+    function displayResults(results) {
+      var resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = "";
+      clearMap();
 
-          <div id="naverMap" style="width:100%;height:400px;border-radius:8px;overflow:hidden;"></div>
-
-          <div class="map-container">
-            <iframe 
-              src="https://storage.googleapis.com/maps-solutions-cccswt1fsz/neighborhood-discovery/ap9e/neighborhood-discovery.html"
-              width="100%" height="100%"
-              loading="lazy">
-            </iframe>
-          </div>
-        `;
-        loadNaverMap(); // 페이지 변경 시 지도 다시 로드
+      if (results.length === 0) {
+        resultsDiv.style.display = "none";
+        alert("검색 결과가 없습니다.");
+        return;
       }
+
+      resultsDiv.style.display = "block";
+      results.forEach(function(place, index) {
+        var item = document.createElement("div");
+        item.className = "result-item";
+        item.innerHTML = `
+          <div class="result-title">${place.roadAddress || place.jibunAddress}</div>
+          <div class="result-address">(${place.y}, ${place.x})</div>
+        `;
+        item.addEventListener("click", function() {
+          focusPlace(place);
+        });
+        resultsDiv.appendChild(item);
+      });
     }
 
-    function showCategory() {
-      content.innerHTML = `
-        <h1>💉 View by Category</h1>
-        <div class="category-grid">
-          <div class="card" onclick="showDetail('rhinoplasty')">
-            <img src="https://via.placeholder.com/300x120?text=Rhinoplasty" />
-            <h3>Rhinoplasty</h3>
-            <p>Enhance your nose shape naturally with Korean expertise.</p>
-          </div>
-          <div class="card" onclick="showDetail('eyelid')">
-            <img src="https://via.placeholder.com/300x120?text=Eyelid" />
-            <h3>Double Eyelid Surgery</h3>
-            <p>Popular Korean eye surgery for brighter, defined eyes.</p>
-          </div>
-          <div class="card" onclick="showDetail('botox')">
-            <img src="https://via.placeholder.com/300x120?text=Botox" />
-            <h3>Botox</h3>
-            <p>Wrinkle reduction and facial contouring treatment.</p>
-          </div>
-          <div class="card" onclick="showDetail('filler')">
-            <img src="https://via.placeholder.com/300x120?text=Filler" />
-            <h3>Filler</h3>
-            <p>Volume enhancement for face and lips using premium fillers.</p>
-          </div>
-          <div class="card" onclick="showDetail('liposuction')">
-            <img src="https://via.placeholder.com/300x120?text=Liposuction" />
-            <h3>Liposuction</h3>
-            <p>Body contouring and fat removal procedure by top clinics.</p>
-          </div>
+    // 특정 장소에 포커스 (지도 이동 + 마커 + 정보창)
+    function focusPlace(place) {
+      var lat = parseFloat(place.y);
+      var lng = parseFloat(place.x);
+      var location = new naver.maps.LatLng(lat, lng);
+
+      map.setCenter(location);
+      map.setZoom(15);
+
+      clearMap();
+
+      var marker = new naver.maps.Marker({
+        position: location,
+        map: map
+      });
+      markers.push(marker);
+
+      var infoContent = `
+        <div style="padding:10px;max-width:200px;">
+          <h4 style="margin:0 0 5px;">${place.roadAddress || place.jibunAddress}</h4>
+          <p>위도: ${lat.toFixed(6)}<br>경도: ${lng.toFixed(6)}</p>
         </div>
       `;
+
+      var infowindow = new naver.maps.InfoWindow({
+        content: infoContent,
+        backgroundColor: "#fff",
+        borderColor: "#03c75a",
+        borderWidth: 3,
+        anchorSize: new naver.maps.Size(20, 20)
+      });
+
+      infowindow.open(map, marker);
+      infowindows.push(infowindow);
+
+      document.getElementById("results").style.display = "none";
     }
 
-    function showDetail(type) {
-      const details = {
-        rhinoplasty: {
-          title: 'Rhinoplasty (Nose Surgery)',
-          desc: 'Korean rhinoplasty focuses on a balanced, natural look using advanced surgical techniques.',
-        },
-        eyelid: {
-          title: 'Double Eyelid Surgery',
-          desc: 'This surgery enhances the crease of the eyelid for a more open, youthful appearance.',
-        },
-        botox: {
-          title: 'Botox Treatment',
-          desc: 'Non-surgical procedure to smooth wrinkles and contour the face.',
-        },
-        filler: {
-          title: 'Filler Injection',
-          desc: 'Add natural volume and symmetry to your face with safe filler procedures.',
-        },
-        liposuction: {
-          title: 'Liposuction',
-          desc: 'Remove excess fat and reshape body contours effectively.',
-        },
-      };
+    // 자동완성 기능
+    var autocompleteTimer;
+    document.getElementById("search-input").addEventListener("input", function() {
+      clearTimeout(autocompleteTimer);
+      var query = this.value.trim();
+      if (!query) {
+        document.getElementById("results").style.display = "none";
+        return;
+      }
 
-      const d = details[type];
-      content.innerHTML = `
-        <h1>${d.title}</h1>
-        <p>${d.desc}</p>
+      autocompleteTimer = setTimeout(function() {
+        naver.maps.Service.geocode({ query: query }, function(status, response) {
+          if (status !== naver.maps.Service.Status.OK) return;
 
-        <div class="review">
-          <h3>⭐ Real Local Review</h3>
-          <p>"The clinic was professional and affordable. The staff spoke English and explained every step clearly."</p>
-        </div>
-        <div class="review">
-          <h3>⭐ Real Local Review</h3>
-          <p>"I found this clinic from Naver reviews, and it truly lives up to the local recommendations!"</p>
-        </div>
+          var results = response.v2.addresses.slice(0, 5); // 상위 5개만 자동완성 표시
+          displayResults(results);
+        });
+      }, 300);
+    });
 
-        <div id="naverMap" style="width:100%;height:400px;border-radius:8px;overflow:hidden;margin-top:20px;"></div>
-
-        <div class="map-container">
-          <iframe 
-            src="https://storage.googleapis.com/maps-solutions-cccswt1fsz/neighborhood-discovery/ap9e/neighborhood-discovery.html"
-            width="100%" height="100%"
-            loading="lazy">
-          </iframe>
-        </div>
-      `;
-      loadNaverMap(); // 상세 페이지에도 네이버지도 표시
-    }
-
-    // 초기 네이버지도 로드
-    loadNaverMap();
+    // 검색 버튼 클릭
+    document.getElementById("search-button").addEventListener("click", function() {
+      var query = document.getElementById("search-input").value.trim();
+      if (!query) {
+        alert("검색어를 입력해주세요.");
+        return;
+      }
+      searchPlaces(query);
+    });
   </script>
 </body>
 </html>
